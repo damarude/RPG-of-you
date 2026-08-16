@@ -1,0 +1,9 @@
+{
+  "name": "RPG of You",
+  "description": "An RPG-style learning tracker where you level up your real-life skills, earn EXP, and evolve your avatar using AI.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "screen-wake-lock"
+  ]
+}

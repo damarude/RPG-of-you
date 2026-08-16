@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>RPG of You</title>
+    <script>
+      // Robust Polyfills for Browser Environment
+      // Ensures dependencies relying on Node.js globals (process, Buffer) work in the browser
+      try {
+        if (typeof global === 'undefined') {
+          window.global = window;
+        }
+        
+        if (typeof process === 'undefined') {
+          window.process = { env: {} };
+        }
+        if (!window.process) window.process = { env: {} };
+        if (!window.process.env) window.process.env = {};
+        
+        // Defaults
+        if (!window.process.env.API_KEY) window.process.env.API_KEY = '';
+        if (!window.process.env.NODE_ENV) window.process.env.NODE_ENV = 'production';
+
+        // Buffer Polyfill
+        if (typeof Buffer === 'undefined') {
+          window.Buffer = {
+            isBuffer: function(obj) { 
+              return obj != null && obj.constructor != null && 
+                     typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj); 
+            },
+            from: function(data) {
+              if (typeof data === 'string') {
+                return new TextEncoder().encode(data);
+              }
+              return new Uint8Array(data);
+            },
+            alloc: function(size) {
+              return new Uint8Array(size);
+            }
+          };
+        }
+      } catch (e) {
+        console.error("Polyfill error:", e);
+      }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              rpg: ['Cinzel', 'serif'],
+              sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+              rpg: {
+                dark: '#0f172a', // Slate 900
+                panel: '#1e293b', // Slate 800
+                accent: '#8b5cf6', // Violet 500
+                gold: '#eab308', // Yellow 500
+                danger: '#ef4444',
+                success: '#22c55e',
+              }
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'glow': 'glow 2s ease-in-out infinite alternate',
+              'idle': 'idle 3s ease-in-out infinite',
+              'spin-slow': 'spin 12s linear infinite',
+              'reverse-spin': 'spin 12s linear infinite reverse',
+              'breathe': 'breathe 3s ease-in-out infinite',
+              'float-up': 'floatUp 1s ease-out forwards',
+              'shake': 'shake 0.5s cubic-bezier(.36,.07,.19,.97) both',
+              'intense-shake': 'intenseShake 0.4s cubic-bezier(.36,.07,.19,.97) both',
+              'lunge': 'lunge 0.3s ease-in-out',
+              'impact': 'impact 0.2s ease-out',
+              'grid-move': 'gridMove 20s linear infinite',
+              'damage-float': 'damageFloat 0.8s ease-out forwards',
+              'crit-pop': 'critPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'shockwave': 'shockwave 0.5s ease-out forwards',
+              'flash': 'flash 0.3s ease-out forwards',
+              'glitch': 'glitch 0.4s steps(2) forwards',
+              'slash-draw': 'slashDraw 0.15s ease-out forwards',
+              'reality-tear': 'realityTear 0.3s ease-out forwards',
+              'obliterate': 'obliterate 0.3s steps(4) forwards',
+              'void-cut': 'voidCut 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+              'shimmer': 'shimmer 2s linear infinite',
+              'death': 'death 2s ease-out forwards',
+              'spawn': 'spawn 1.5s ease-in-out forwards',
+            },
+            keyframes: {
+              glow: {
+                '0%': { boxShadow: '0 0 5px #8b5cf6' },
+                '100%': { boxShadow: '0 0 20px #8b5cf6, 0 0 10px #eab308' },
+              },
+              idle: {
+                '0%, 100%': { transform: 'translateY(0) scaleY(1)' },
+                '50%': { transform: 'translateY(-3px) scaleY(1.02)' },
+              },
+              breathe: {
+                '0%, 100%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.15)' },
+              },
+              floatUp: {
+                '0%': { transform: 'translateY(0) scale(0.8)', opacity: '0' },
+                '20%': { transform: 'translateY(-20px) scale(1.2)', opacity: '1' },
+                '100%': { transform: 'translateY(-60px) scale(1)', opacity: '0' },
+              },
+              damageFloat: {
+                '0%': { transform: 'translateY(0) scale(0.5)', opacity: '0' },
+                '15%': { transform: 'translateY(-30px) scale(1.1)', opacity: '1' },
+                '100%': { transform: 'translateY(-120px) scale(1)', opacity: '0' },
+              },
+              critPop: {
+                '0%': { transform: 'scale(0.2) translateY(0)', opacity: '0' },
+                '40%': { transform: 'scale(1.5) translateY(-40px)', opacity: '1' },
+                '100%': { transform: 'scale(1) translateY(-100px)', opacity: '0' }
+              },
+              shake: {
+                '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+                '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+                '30%, 50%, 70%': { transform: 'translate3d(-4px, 0, 0)' },
+                '40%, 60%': { transform: 'translate3d(4px, 0, 0)' }
+              },
+              intenseShake: {
+                '0%, 100%': { transform: 'translate(0, 0) rotate(0)' },
+                '10%, 30%, 50%, 70%, 90%': { transform: 'translate(-15px, 15px) rotate(-3deg) scale(1.1)' },
+                '20%, 40%, 60%, 80%': { transform: 'translate(15px, -15px) rotate(3deg) scale(1.1)' },
+              },
+              lunge: {
+                '0%': { transform: 'translateX(0) scale(1)' },
+                '50%': { transform: 'translateX(60px) scale(1.1)' },
+                '100%': { transform: 'translateX(0) scale(1)' }
+              },
+              impact: {
+                '0%': { transform: 'scale(1)', filter: 'brightness(1)' },
+                '50%': { transform: 'scale(1.1)', filter: 'brightness(5)' },
+                '100%': { transform: 'scale(1)', filter: 'brightness(1)' }
+              },
+              gridMove: {
+                '0%': { backgroundPosition: '0 0' },
+                '100%': { backgroundPosition: '0 100%' }
+              },
+              shockwave: {
+                '0%': { transform: 'scale(0.5)', opacity: '1', borderWidth: '40px' },
+                '100%': { transform: 'scale(2.5)', opacity: '0', borderWidth: '0px' }
+              },
+              flash: {
+                '0%': { opacity: '0.8' },
+                '100%': { opacity: '0' }
+              },
+              glitch: {
+                '0%': { transform: 'translate(0)' },
+                '20%': { transform: 'translate(-5px, 5px)' },
+                '40%': { transform: 'translate(-5px, -5px)' },
+                '60%': { transform: 'translate(5px, 5px)' },
+                '80%': { transform: 'translate(5px, -5px)' },
+                '100%': { transform: 'translate(0)' }
+              },
+              slashDraw: {
+                '0%': { transform: 'scaleX(0)', opacity: '0.5' },
+                '50%': { transform: 'scaleX(1.5)', opacity: '1' },
+                '100%': { transform: 'scaleX(1.2)', opacity: '0' }
+              },
+              realityTear: {
+                '0%': { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)', transform: 'scale(1)' },
+                '50%': { clipPath: 'polygon(0 0, 45% 0, 55% 100%, 0 100%)', transform: 'translateX(-20px) skewX(-10deg)' },
+                '51%': { clipPath: 'polygon(55% 0, 100% 0, 100% 100%, 45% 100%)', transform: 'translateX(20px) skewX(10deg)' },
+                '100%': { clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 100%)', transform: 'scale(1)' }
+              },
+              obliterate: {
+                '0%': { filter: 'hue-rotate(0deg) invert(0) blur(0px)' },
+                '25%': { filter: 'hue-rotate(90deg) invert(1) blur(2px)' },
+                '50%': { filter: 'hue-rotate(180deg) invert(0) blur(0px)' },
+                '75%': { filter: 'hue-rotate(270deg) invert(1) blur(4px)' },
+                '100%': { filter: 'hue-rotate(0deg) invert(0) blur(0px)' }
+              },
+              voidCut: {
+                '0%': { height: '0%', opacity: 0 },
+                '10%': { height: '150%', opacity: 1, width: '2px' },
+                '50%': { width: '80px', opacity: 0.8 },
+                '100%': { width: '0px', opacity: 0 }
+              },
+              shimmer: {
+                '0%': { transform: 'translateX(-100%)' },
+                '100%': { transform: 'translateX(100%)' }
+              },
+              death: {
+                '0%': { transform: 'scale(1)', opacity: '1', filter: 'grayscale(0)' },
+                '50%': { transform: 'scale(1.1)', opacity: '0.8', filter: 'grayscale(100%)' },
+                '100%': { transform: 'scale(0)', opacity: '0', filter: 'grayscale(100%)' }
+              },
+              spawn: {
+                '0%': { transform: 'scale(0) translateY(-50px)', opacity: '0', filter: 'brightness(2)' },
+                '60%': { transform: 'scale(1.1) translateY(10px)', opacity: '1', filter: 'brightness(1.5)' },
+                '100%': { transform: 'scale(1) translateY(0)', opacity: '1', filter: 'brightness(1)' }
+              }
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: 'Inter', sans-serif;
+        /* Native App Feel: Disable Selection */
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #0f172a; 
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #334155; 
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #475569; 
+      }
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      /* RPG Sprite Rendering */
+      .pixel-art {
+        image-rendering: pixelated;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: crisp-edges;
+      }
+      /* Cyber Grid Background */
+      .cyber-grid {
+        background-image: 
+          linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+        background-size: 40px 40px;
+        perspective: 500px;
+      }
+      /* 3D Text Utilities */
+      .text-shadow-sm {
+        text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      }
+      .text-shadow-md {
+        text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+      }
+      .text-shadow-lg {
+        text-shadow: 3px 3px 0px rgba(0,0,0,1);
+      }
+      .text-stroke {
+        -webkit-text-stroke: 1px rgba(0,0,0,0.5);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
+    "html2canvas": "https://esm.sh/html2canvas@^1.4.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
